@@ -25,7 +25,7 @@ headers = {
 
 events_url = 'https://api.stubhub.com/search/catalog/events/v3'
 events_qs = params_json['event_qs']
-events = requests.get(events_url, params=events_qs, headers=headers) #, data=body)
+events = requests.get(events_url, params=events_qs, headers=headers)
 events_json = json.loads(events.text)
 
 inventory_url = 'https://api.stubhub.com/search/inventory/v2'
@@ -63,7 +63,9 @@ for i in events_json['events']:
         row_find = find_event_id.row
         find_section_id = sheet.find(str(sstats['sectionId']))
         col_find = find_section_id.col
-        sheet.update_cell(row_find, 18, inventory2_json['totalTickets'])
+        e_t_remain = sheet.find('event_tix_remain')
+        e_t_r_col_find = e_t_remain.col
+        sheet.update_cell(row_find, e_t_r_col_find, inventory2_json['totalTickets'])
         sheet.update_cell(row_find, col_find, str(sstats['minTicketPriceWithCurrency']['amount']) + '/' + str(sstats['averageTicketPriceWithCurrency']['amount']) + '/' + str(sstats['maxTicketPriceWithCurrency']['amount']))
 
     print s_stats_table.get_string(sortby='Section')
