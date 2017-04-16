@@ -24,12 +24,26 @@ for i in events_json['events']:
     inventory = requests.get(inventory_url, params=eventid, headers=headers)
     inventory_json = json.loads(inventory.text)
     s_stats = inventory_json['section_stats']
-    s_stats_table = PrettyTable(['Section', 'Remaining', 'Min price', 'Avg price', 'Max price'])
-    event_table = PrettyTable(['EventID', 'Event Time', 'Opponent', 'Tickets Remaining'])
-    event_table.add_row([str(i['id']),  str(i['eventDateLocal']), str(i['performersCollection'][1]['name']), str(inventory_json['totalTickets'])])
+    s_stats_table = PrettyTable(['Section',
+                                 'Remaining',
+                                 'Min price',
+                                 'Avg price',
+                                 'Max price'])
+    event_table = PrettyTable(['EventID',
+                               'Event Time',
+                               'Opponent',
+                               'Tickets Remaining'])
+    event_table.add_row([str(i['id']),
+                         str(i['eventDateLocal']),
+                         str(i['performersCollection'][1]['name']),
+                         str(inventory_json['totalTickets'])])
     print event_table
     event_table = ''
     for sstats in s_stats:
-        s_stats_table.add_row([str(sstats['sectionName']), str(sstats['totalTickets']), str(sstats['minTicketPriceWithCurrency']['amount']), str(sstats['averageTicketPriceWithCurrency']['amount']), str(sstats['maxTicketPriceWithCurrency']['amount'])])
+        s_stats_table.add_row([str(sstats['sectionName']),
+                               str(sstats['totalTickets']),
+                               str(sstats['minTicketPriceWithCurrency']['amount']),
+                               str(sstats['averageTicketPriceWithCurrency']['amount']),
+                               str(sstats['maxTicketPriceWithCurrency']['amount'])])
 
     print s_stats_table.get_string(sortby='Section')
