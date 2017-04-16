@@ -1,0 +1,7 @@
+{
+  "consumer_key"    : "<stubhub api consumer key>",
+  "consumer_secret" : "<stubhub api consumer secret>",
+  "user_email"      : "<stubhub_email@domain.com",
+  "user_password"   : "<stubhub password>",
+  "auth_bearer"     : "<stubhub access token>",
+}
