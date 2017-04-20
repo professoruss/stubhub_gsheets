@@ -4,4 +4,5 @@
   "user_email"      : "<stubhub_email@domain.com",
   "user_password"   : "<stubhub password>",
   "auth_bearer"     : "<stubhub access token>",
+  "stubhub_userid"  : "<stubhub user id>"
 }
