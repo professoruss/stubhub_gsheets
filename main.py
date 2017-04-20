@@ -14,28 +14,26 @@ params_json = json.loads(open('params.json').read())
 
 # stubhub headers
 headers = {
-        'Content-Type':'application/x-www-form-urlencoded',
-        'Authorization':'Bearer '+ auth_json['auth_bearer']
-        }
+    'Content-Type'  : 'application/x-www-form-urlencoded',
+    'Authorization' : 'Bearer '+ auth_json['auth_bearer']
+}
 
 sh_update_headers = {
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+ auth_json['auth_bearer']
-        }
+    'Content-Type'  : 'application/json',
+    'Authorization' : 'Bearer '+ auth_json['auth_bearer']
+}
 
 # stubhub URLS and vars
-events_url = 'https://api.stubhub.com/search/catalog/events/v3'
-events_qs = params_json['event_qs']
-events = requests.get(events_url, params=events_qs, headers=headers)
-events_json = json.loads(events.text)
-
+events_url    = 'https://api.stubhub.com/search/catalog/events/v3'
+events_qs     = params_json['event_qs']
+events        = requests.get(events_url, params=events_qs, headers=headers)
+events_json   = json.loads(events.text)
 inventory_url = 'https://api.stubhub.com/search/inventory/v2'
-
-listings_url = 'https://api.stubhub.com/accountmanagement/listings/v1/seller/%s' % auth_json['stubhub_userid']
+listings_url  = 'https://api.stubhub.com/accountmanagement/listings/v1/seller/%s' % auth_json['stubhub_userid']
 
 # use creds to create a client to interact with the Google Drive API
-scope = ['https://spreadsheets.google.com/feeds']
-creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
+scope  = ['https://spreadsheets.google.com/feeds']
+creds  = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
 client = gspread.authorize(creds)
 
 # Find a workbook by name and open the first sheet
@@ -44,41 +42,41 @@ sheet = client.open(params_json['g_spreadsheet']).sheet1
 
 # Find google sheet column to check if we need to update our price
 find_update_col = sheet.find('Update?')
-update_col = find_update_col.col
+update_col      = find_update_col.col
 # Get google sheet row count so we can iterate over it
 row_count = sheet.row_count
 # Get the column for the price we have listed
 find_listed_col = sheet.find('Listed')
-listed_col = find_listed_col.col
+listed_col      = find_listed_col.col
 # find the stubhub event id
 find_event_id = sheet.find('SH event_id')
-event_id_col = find_event_id.col
+event_id_col  = find_event_id.col
 # Iterate over all the rows
 curr_row = 1
 while curr_row <= row_count:
-  # only act on rows that have Update? set to Y
-  if sheet.cell(curr_row, update_col).value == 'Y':
-    # get the price that we want to set
-    update_price = sheet.cell(curr_row, listed_col).value
-    # make our update price a float
-    update_price2 = Decimal(sub(r'[^\d.]', '', update_price))
-    event_id = sheet.cell(curr_row, event_id_col).value
-    print("need to update price to " + str(update_price) + "for event " + str(event_id))
-    # set the filter for the eventid so we can get the listing id
-    listings_eventid = 'filters=EVENT:%s' % event_id
-    my_listings = requests.get(listings_url, params=listings_eventid, headers=headers)
-    my_listings_json = json.loads(my_listings.text)
-    # set the payload to update the listing
-    update_json='{"listing": { "pricePerTicket": "%s" } }' % update_price2
-    # update listing url with listingid we got from the last call
-    update_listings_url = 'https://api.stubhub.com/inventory/listings/v1/%s' % my_listings_json['listings']['listing'][0]['id']
-    update_listing = requests.put(update_listings_url, headers=sh_update_headers, data=update_json)
-    update_listing.raw
-    # reset the Update? to N so we don't keep trying to update prices
-    sheet.update_cell(curr_row, update_col, 'N')
+    # only act on rows that have Update? set to Y
+    if sheet.cell(curr_row, update_col).value == 'Y':
+        # get the price that we want to set
+        update_price = sheet.cell(curr_row, listed_col).value
+        # make our update price a float
+        update_price2 = Decimal(sub(r'[^\d.]', '', update_price))
+        event_id = sheet.cell(curr_row, event_id_col).value
+        print("Need to update price to " + str(update_price) + " for event id " + str(event_id))
+        # set the filter for the eventid so we can get the listing id
+        listings_eventid = 'filters=EVENT:%s' % event_id
+        my_listings = requests.get(listings_url, params=listings_eventid, headers=headers)
+        my_listings_json = json.loads(my_listings.text)
+        # set the payload to update the listing
+        update_json='{"listing": { "pricePerTicket": "%s" } }' % update_price2
+        # update listing url with listingid we got from the last call
+        update_listings_url = 'https://api.stubhub.com/inventory/listings/v1/%s' % my_listings_json['listings']['listing'][0]['id']
+        update_listing = requests.put(update_listings_url, headers=sh_update_headers, data=update_json)
+        update_listing.raw
+        # reset the Update? to N so we don't keep trying to update prices
+        sheet.update_cell(curr_row, update_col, 'N')
 
-  # increment the current row
-  curr_row += 1
+    # increment the current row
+    curr_row += 1
 
 for i in events_json['events']:
     eventid = 'eventid=' + str(i['id']) + '&sectionstats=true&sectionidlist=' + params_json['sectionidlist']
