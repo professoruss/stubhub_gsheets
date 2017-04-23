@@ -28,6 +28,7 @@ events_url    = 'https://api.stubhub.com/search/catalog/events/v3'
 events_qs     = params_json['event_qs']
 events        = requests.get(events_url, params=events_qs, headers=headers)
 events_json   = json.loads(events.text)
+sorted_events = sorted(events_json['events'], key=lambda d: d['id'])
 inventory_url = 'https://api.stubhub.com/search/inventory/v2'
 listings_url  = 'https://api.stubhub.com/accountmanagement/listings/v1/seller/%s' % auth_json['stubhub_userid']
 
@@ -66,19 +67,21 @@ while curr_row <= row_count:
         listings_eventid = 'filters=EVENT:%s' % event_id
         my_listings = requests.get(listings_url, params=listings_eventid, headers=headers)
         my_listings_json = json.loads(my_listings.text)
+        print(my_listings.status_code)
         # set the payload to update the listing
         update_json='{"listing": { "pricePerTicket": "%s" } }' % update_price2
         # update listing url with listingid we got from the last call
         update_listings_url = 'https://api.stubhub.com/inventory/listings/v1/%s' % my_listings_json['listings']['listing'][0]['id']
         update_listing = requests.put(update_listings_url, headers=sh_update_headers, data=update_json)
         update_listing.raw
+        print(update_listing.status_code)
         # reset the Update? to N so we don't keep trying to update prices
         sheet.update_cell(curr_row, update_col, 'N')
 
     # increment the current row
     curr_row += 1
 
-for i in events_json['events']:
+for i in sorted_events:
     eventid = 'eventid=' + str(i['id']) + '&sectionstats=true&sectionidlist=' + params_json['sectionidlist']
     inventory = requests.get(inventory_url, params=eventid, headers=headers)
     inventory_json = json.loads(inventory.text)
@@ -113,7 +116,9 @@ for i in events_json['events']:
         col_find = find_section_id.col
         e_t_remain = sheet.find('event_tix_remain')
         e_t_r_col_find = e_t_remain.col
+        event_link_url_1 = 'https://www.stubhub.com/event/'
+        event_link_url_2 = '?sort=price+asc&sid='
         sheet.update_cell(row_find, e_t_r_col_find, inventory2_json['totalTickets'])
-        sheet.update_cell(row_find, col_find, str(sstats['minTicketPriceWithCurrency']['amount']) + '/' + str(sstats['averageTicketPriceWithCurrency']['amount']) + '/' + str(sstats['maxTicketPriceWithCurrency']['amount']))
+        sheet.update_cell(row_find, col_find, '=HYPERLINK("' + event_link_url_1 + str(i['id']) + event_link_url_2 + find_section_id.value + '","' + str(sstats['minTicketPriceWithCurrency']['amount']) + '/' + str(sstats['averageTicketPriceWithCurrency']['amount']) + '/' + str(sstats['maxTicketPriceWithCurrency']['amount']) + '")' )
 
     print s_stats_table.get_string(sortby='Section')
