@@ -82,7 +82,7 @@ while curr_row <= row_count:
     curr_row += 1
 
 for i in sorted_events:
-    eventid = 'eventid=' + str(i['id']) + '&sectionstats=true&sectionidlist=' + params_json['sectionidlist']
+    eventid = 'eventid=' + str(i['id']) + '&sectionstats=true&rows=1000&sectionidlist=' + params_json['sectionidlist']
     inventory = requests.get(inventory_url, params=eventid, headers=headers)
     inventory_json = json.loads(inventory.text)
     eventid2 = 'eventid=' + str(i['id']) + '&sectionstats=true'
@@ -104,12 +104,33 @@ for i in sorted_events:
                          str(inventory2_json['totalTickets'])])
     print event_table
     event_table = ''
-    for sstats in s_stats:
-        s_stats_table.add_row([str(sstats['sectionName']),
-                               str(sstats['totalTickets']),
-                               str(sstats['minTicketPriceWithCurrency']['amount']),
-                               str(sstats['averageTicketPriceWithCurrency']['amount']),
-                               str(sstats['maxTicketPriceWithCurrency']['amount'])])
+    section_prices = {}
+    for k in inventory_json['listing']:
+        section_prices.setdefault(k['sectionId'], {}).setdefault('prices', []).append(k['listingPrice']['amount'])
+
+    for l in section_prices:
+        min_price = format(min(section_prices[l]['prices']), '.2f')
+        max_price = format(max(section_prices[l]['prices']), '.2f')
+        total_prices = 0.0
+        for prices in section_prices[l]['prices']:
+            total_prices += prices
+        avg_price = format(total_prices / len(section_prices[l]['prices']), '.2f')
+        section_prices[l]['min_price'] = min_price
+        section_prices[l]['max_price'] = max_price
+        section_prices[l]['avg_price'] = avg_price
+
+    for sstats in inventory_json['section_stats']:
+        sectionid    = sstats['sectionId']
+        sectionname  = sstats['sectionName']
+        totaltickets = sstats['totalTickets']
+        section_prices[sectionid]['sectionname']  = sectionname
+        section_prices[sectionid]['totaltickets'] = totaltickets
+        s_stats_table.add_row([str(section_prices[sectionid]['sectionname']),
+                               str(section_prices[sectionid]['totaltickets']),
+                               str(section_prices[sectionid]['min_price']),
+                               str(section_prices[sectionid]['avg_price']),
+                               str(section_prices[sectionid]['max_price'])])
+
         find_event_id = sheet.find(str(i['id']))
         row_find = find_event_id.row
         find_section_id = sheet.find(str(sstats['sectionId']))
@@ -119,6 +140,6 @@ for i in sorted_events:
         event_link_url_1 = 'https://www.stubhub.com/event/'
         event_link_url_2 = '?sort=price+asc&sid='
         sheet.update_cell(row_find, e_t_r_col_find, inventory2_json['totalTickets'])
-        sheet.update_cell(row_find, col_find, '=HYPERLINK("' + event_link_url_1 + str(i['id']) + event_link_url_2 + find_section_id.value + '","' + str(sstats['minTicketPriceWithCurrency']['amount']) + '/' + str(sstats['averageTicketPriceWithCurrency']['amount']) + '/' + str(sstats['maxTicketPriceWithCurrency']['amount']) + '")' )
+        sheet.update_cell(row_find, col_find, '=HYPERLINK("' + event_link_url_1 + str(i['id']) + event_link_url_2 + find_section_id.value + '","' + str(section_prices[sectionid]['min_price']) + '/' + str(section_prices[sectionid]['avg_price']) + '/' + str(section_prices[sectionid]['max_price']) + '")' )
 
     print s_stats_table.get_string(sortby='Section')
